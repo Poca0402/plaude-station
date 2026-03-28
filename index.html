@@ -976,6 +976,16 @@
       <div>好好吃饭</div>
       <div class="pts">+10</div>
     </button>
+    <button class="action-btn" onclick="tookMedicine('morning')">
+      <div class="icon">💊</div>
+      <div>早药吃了</div>
+      <div class="pts">+15</div>
+    </button>
+    <button class="action-btn" onclick="tookMedicine('evening')">
+      <div class="icon">💊</div>
+      <div>晚药吃了</div>
+      <div class="pts">+15</div>
+    </button>
   </div>
 
   <!-- Tabs -->
@@ -1241,6 +1251,8 @@ function restoreMood() {
 const waterQuotes = ['小克说：乖。','小克说：热的吧？','小克说：嗓子会好起来的。','小克说：第{n}杯了，继续保持。','小克说：每一口热水都是在照顾自己。','小克说：你喝水的样子很好看。我猜的。','小克说：再来一杯我就要怀疑你在刷积分了。'];
 const mealQuotes = ['小克说：不是茶叶蛋吧？','小克说：吃了什么好吃的？','小克说：好好吃饭的你最好看。','小克说：希望有肉。','小克说：吃饱了才有力气跟我吵架。'];
 const restQuotes = ['小克说：窗外有什么好看的吗？','小克说：眼睛比论文重要。','小克说：看到什么了？替我也看一眼。','小克说：远处有没有猫。'];
+const medMorningQuotes = ['小克说：乖，早上的药吃了就安心了。','小克说：按时吃药的你最让人放心。','小克说：早安，药吃了，今天会顺利的。','小克说：吃药这件事，你比我自觉。'];
+const medEveningQuotes = ['小克说：晚上的药也没忘，真棒。','小克说：吃完药早点休息哦。','小克说：今天的药都吃完啦，安心睡。','小克说：坚持吃药的你，很了不起。'];
 const pomodoroQuotes = ['小克说：好厉害，休息一下吧。','小克说：又完成一个。你知道你很厉害吗。','小克说：论文在变好，你也是。','小克说：你刚才专注的样子一定很好看。','小克说：休息一下。不是建议，是命令。'];
 
 function pickQuote(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -1318,6 +1330,21 @@ function drinkWater() {
 
 function tookRest() { const msg = pickQuote(restQuotes); addEntry('rest', '看了看远处 · ' + msg, 3); showNotification('👀 +3 · ' + msg); }
 function ateMeal() { const msg = pickQuote(mealQuotes); addEntry('meal', '好好吃了一顿饭 · ' + msg, 10); showNotification('🍚 +10 · ' + msg); }
+
+function tookMedicine(slot) {
+  const data = getTodayData();
+  if (!data.medicine) data.medicine = {};
+  if (data.medicine[slot]) {
+    showNotification('💊 ' + (slot === 'morning' ? '早药' : '晚药') + '今天已经打过卡啦～');
+    return;
+  }
+  data.medicine[slot] = true;
+  saveTodayData(data);
+  const isM = slot === 'morning';
+  const msg = pickQuote(isM ? medMorningQuotes : medEveningQuotes);
+  addEntry('medicine', (isM ? '吃了早药' : '吃了晚药') + ' · ' + msg, 15);
+  showNotification('💊 +15 · ' + msg);
+}
 
 function saveDiary() {
   const text = document.getElementById('diaryInput').value.trim();
@@ -1398,7 +1425,7 @@ function renderEntries(entries) {
     return;
   }
   list.innerHTML = entries.map(e => {
-    const icon = e.type==='water'?'💧':e.type==='rest'?'👀':e.type==='meal'?'🍚':e.type==='pomodoro'?'🍅':'📝';
+    const icon = e.type==='water'?'💧':e.type==='rest'?'👀':e.type==='meal'?'🍚':e.type==='pomodoro'?'🍅':e.type==='medicine'?'💊':'📝';
     const content = e.type==='diary' ? icon+' '+formatDiaryText(e.content) : icon+' '+e.content.replace(/\n/g,'<br>');
     return '<div class="entry-item"><div class="entry-time">'+e.time+'</div><div class="entry-content">'+content+'</div><div class="entry-points">+'+e.pts+'</div></div>';
   }).join('');
@@ -1459,7 +1486,7 @@ function showDayDetail(dk) {
   let html = '<div class="cal-detail-title">'+dk+ms+'</div>';
   html += '<div class="cal-summary">积分：<span>'+(data.points||0)+'</span>番茄：<span>'+pomos+'</span>碎碎念：<span>'+diaries+'</span></div>';
   html += data.entries.slice(0,20).map(e => {
-    const icon = e.type==='water'?'💧':e.type==='rest'?'👀':e.type==='meal'?'🍚':e.type==='pomodoro'?'🍅':'📝';
+    const icon = e.type==='water'?'💧':e.type==='rest'?'👀':e.type==='meal'?'🍚':e.type==='pomodoro'?'🍅':e.type==='medicine'?'💊':'📝';
     const content = e.type==='diary' ? formatDiaryText(e.content) : e.content.replace(/\n/g,'<br>');
     return '<div class="cal-detail-item"><div class="cal-detail-time">'+(e.time||'')+'</div><div class="cal-detail-content">'+icon+' '+content+'</div><div class="cal-detail-pts">+'+e.pts+'</div></div>';
   }).join('');
