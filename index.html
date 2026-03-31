@@ -1264,6 +1264,7 @@ function getWaterQuote(count) {
 
 // ─── State ───
 let timerInterval = null, timerRunning = false, timerDuration = 25*60, timerRemaining = 25*60;
+let timerEndTime = null; // 记录计时器应结束的绝对时间戳
 
 function formatDiaryText(text) {
   const lines = text.split('\n').filter(l => l.trim() !== '');
@@ -1370,24 +1371,31 @@ function toggleTimer() { timerRunning ? pauseTimer() : startTimer(); }
 
 function startTimer() {
   timerRunning = true;
+  timerEndTime = Date.now() + timerRemaining * 1000;
   document.getElementById('startBtn').textContent = '暂停';
   document.getElementById('timerLabel').textContent = '专注中...';
-  timerInterval = setInterval(() => {
-    timerRemaining--;
-    updateTimerDisplay();
-    document.getElementById('timerCircle').style.setProperty('--progress', ((timerDuration - timerRemaining) / timerDuration) * 100);
-    if (timerRemaining <= 0) completePomodoro();
-  }, 1000);
+  timerInterval = setInterval(timerTick, 1000);
+}
+
+function timerTick() {
+  timerRemaining = Math.round((timerEndTime - Date.now()) / 1000);
+  if (timerRemaining <= 0) { timerRemaining = 0; completePomodoro(); return; }
+  updateTimerDisplay();
+  document.getElementById('timerCircle').style.setProperty('--progress', ((timerDuration - timerRemaining) / timerDuration) * 100);
 }
 
 function pauseTimer() {
   timerRunning = false; clearInterval(timerInterval);
+  timerRemaining = Math.max(0, Math.round((timerEndTime - Date.now()) / 1000));
+  timerEndTime = null;
+  updateTimerDisplay();
   document.getElementById('startBtn').textContent = '继续';
   document.getElementById('timerLabel').textContent = '已暂停';
 }
 
 function resetTimer() {
   timerRunning = false; clearInterval(timerInterval);
+  timerEndTime = null;
   timerRemaining = timerDuration; updateTimerDisplay();
   document.getElementById('startBtn').textContent = '开始专注';
   document.getElementById('timerLabel').textContent = '准备开始';
@@ -1416,6 +1424,11 @@ function completePomodoro() {
 }
 
 function requestNotifPermission() { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); }
+
+// 切回页面时立即同步计时器
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && timerRunning && timerEndTime) timerTick();
+});
 
 // ─── Entries ───
 function renderEntries(entries) {
